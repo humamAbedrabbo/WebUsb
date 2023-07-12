@@ -1,0 +1,89 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about </p>
+    <button id="connectButton">connect</button>
+    <button id="disconnectButton">disconnect</button>
+    <button id="colorButton">color</button>
+    <div id="connected"></div>
+</div>
+
+<script>
+    let device = null;
+    const connectButton = document.getElementById('connectButton');
+    const disconnectButton = document.getElementById('disconnectButton');
+    const SOF = 0x53;
+    const EOF = 0x45;
+
+    connectButton.onclick = async () => {
+        device = await navigator.usb.requestDevice({
+            filters: [{ vendorId: VID, productId: PID }]
+        });
+        await device.open();
+        await device.selectConfiguration(1);
+        await device.claimInterface(0);
+        connectButton.innerText = "connected";
+
+    };
+    disconnectButton.onclick = async () => {
+        await device.close();
+        connectButton.innerText = "disconnected";
+    };
+
+    colorButton.onclick = async () => {
+        let txdata = new Uint8Array(32);
+        let length = 0;
+        let cmd01 = 0x37;
+        
+        let len = 0;
+        let retry_counter = 2;
+        let receivedData = new Uint8Array(64);
+        let frameLength;
+
+        let i;
+        let sum = 0;
+        
+        for (i = len + 2; i > 2; i--) {
+            txdata[i] = txdata[i - 3];
+        }
+        txdata[0] = SOF;
+        txdata[1] = cmd01;
+        txdata[2] = len;
+        sum = 0;
+        for (i = 1; i <= len + 2; i++)
+        {
+            sum += txdata[i];
+        }
+        txdata[3 + len] = sum;
+        txdata[4 + len] = EOF;
+        frameLength = len + 5;
+
+
+
+        await device.transferOut(2, data);
+    };
+
+    function makeFrame(txdata, length, cmd)
+    {
+
+    }
+
+
+    function createDevice(){
+        navigator.usb
+            .requestDevice({ filters: [{ vendorId: VID, productId: PID }] })
+            .then((device) => {
+                console.log(device.productName); 
+                console.log(device.manufacturerName); 
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+
+    }
+</script>
