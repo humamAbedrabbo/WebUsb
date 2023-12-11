@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WebUSB Example</title>
+</head>
+<body>
+    <h1>WebUSB Example</h1>
+    <p>This page demonstrates how to use the WebUSB API to send bytes to a USB device.</p>
+    <button id="request-device" onclick="requestDevice()">Request Device</button>
+    <script>
+        // A function to request the device
+        async function requestDevice() {
+            try {
+                // Request a device with a specific vendor and product ID
+                let device = await navigator.usb.requestDevice({
+                    filters: [{ vendorId: 0x03EB, productId: 0x311F }],
+                });
+
+                // Open and select a configuration
+                await device.open();
+                await device.selectConfiguration(1);
+
+                // Select an interface and claim it
+                let interfaceNumber = device.configuration.interfaces[0].interfaceNumber;
+                //await device.claimInterface(interfaceNumber);
+
+                // Select an alternate setting and a transfer endpoint
+                let alternateSetting = device.configuration.interfaces[0].alternates[0];
+                let endpointNumber = alternateSetting.endpoints[0].endpointNumber;
+
+                // Create a buffer with the bytes to send
+                let buffer = new Uint8Array([0x53, 0x62, 0x03, 0x05, 0x01, 0x05, 0x70, 0x45]);
+
+                // Send the buffer to the device
+                await device.transferOut(endpointNumber, buffer);
+
+                // Display the result
+                alert("Bytes sent successfully.");
+            } catch (error) {
+                // Handle any errors
+                console.error(error);
+                alert(error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -14,11 +14,13 @@
 </div>
 
 <script>
-    let device = null;
+    var device = null;
     const connectButton = document.getElementById('connectButton');
     const disconnectButton = document.getElementById('disconnectButton');
     const SOF = 0x53;
     const EOF = 0x45;
+    const VID = 0x03EB;
+    const PID = 0x311F;
 
     connectButton.onclick = async () => {
         device = await navigator.usb.requestDevice({
@@ -36,37 +38,94 @@
     };
 
     colorButton.onclick = async () => {
-        let txdata = new Uint8Array(32);
-        let length = 0;
-        let cmd01 = 0x37;
+
+         
+
+        await sendBytesToDevice2();
+        //await sendBytesToDevice();
+
+
+
+        // let txdata = new Uint8Array(32);
+        // let length = 0;
+        // let cmd01 = 0x37;
         
-        let len = 0;
-        let retry_counter = 2;
-        let receivedData = new Uint8Array(64);
-        let frameLength;
+        // let len = 0;
+        // let retry_counter = 2;
+        // let receivedData = new Uint8Array(64);
+        // let frameLength;
 
-        let i;
-        let sum = 0;
+        // let i;
+        // let sum = 0;
         
-        for (i = len + 2; i > 2; i--) {
-            txdata[i] = txdata[i - 3];
-        }
-        txdata[0] = SOF;
-        txdata[1] = cmd01;
-        txdata[2] = len;
-        sum = 0;
-        for (i = 1; i <= len + 2; i++)
-        {
-            sum += txdata[i];
-        }
-        txdata[3 + len] = sum;
-        txdata[4 + len] = EOF;
-        frameLength = len + 5;
+        // for (i = len + 2; i > 2; i--) {
+        //     txdata[i] = txdata[i - 3];
+        // }
+        // txdata[0] = SOF;
+        // txdata[1] = cmd01;
+        // txdata[2] = len;
+        // sum = 0;
+        // for (i = 1; i <= len + 2; i++)
+        // {
+        //     sum += txdata[i];
+        // }
+        // txdata[3 + len] = sum;
+        // txdata[4 + len] = EOF;
+        // frameLength = len + 5;
 
 
 
-        await device.transferOut(2, data);
+        // await device.transferOut(2, data);
     };
+
+    async function sendBytesToDevice2() {
+        const VID = 0x03EB;
+        const PID = 0x311F;
+
+        // Request a device with a specific vendor and product ID
+        device = await navigator.hid.requestDevice({
+            filters: [{ vendorId: 0x03EB, productId: 0x311F }],
+        });
+        debugger;
+        await device[0].open();
+        let buffer = new Uint8Array([0x53, 0x62, 0x03, 0x05, 0x01, 0x05, 0x70, 0x45]);
+
+        await device[0].sendReport(0, buffer);
+        await device[0].close();
+    }
+
+    // A function to send 8 bytes to a USB device
+    async function sendBytesToDevice() {
+        const VID = 0x03EB;
+        const PID = 0x311F;
+
+        // Request a device with a specific vendor and product ID
+        device = await navigator.usb.requestDevice({
+            filters: [{ vendorId: 0x03EB, productId: 0x311F }],
+        });
+        debugger;
+        // Open and select a configuration
+        await device.open();
+        await device.selectConfiguration(1);
+
+        // Select an interface and claim it
+        let interfaceNumber = device.configuration.interfaces[0].interfaceNumber;
+        await device.claimInterface(0);
+
+        // Select an alternate setting and a transfer endpoint
+        let alternateSetting = device.configuration.interfaces[0].alternates[0];
+        let endpointNumber = alternateSetting.endpoints[1].endpointNumber;
+
+        // Create a buffer with 8 bytes of data
+        // let buffer = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7]);
+        let buffer = new Uint8Array([0x53, 0x62, 0x03, 0x05, 0x01, 0x05, 0x70, 0x45]);
+        // Send the buffer to the device
+        await device.transferOut(endpointNumber, buffer);
+
+        // Close the device
+        await device.close();
+    }
+
 
     function makeFrame(txdata, length, cmd)
     {
